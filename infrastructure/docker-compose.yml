@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # Frontend service
+  frontend:
+    build:
+      context: ../frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:8000/api/v1
+      - VITE_SUPABASE_URL=${SUPABASE_URL}
+      - VITE_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+    volumes:
+      - ../frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+  # Backend service
+  backend:
+    build:
+      context: ../backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_KEY=${SUPABASE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
+      - DATABASE_URL=${DATABASE_URL}
+    volumes:
+      - ../backend:/app
+    depends_on:
+      - postgres
+
+  # PostgreSQL database for local development
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=duckcode
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # API documentation
+  api-docs:
+    image: redocly/redoc:latest
+    ports:
+      - "8080:80"
+    environment:
+      - SPEC_URL=http://backend:8000/api/v1/openapi.json
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:
